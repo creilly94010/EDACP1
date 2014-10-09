@@ -6,29 +6,32 @@
 
 ## Set up the data import variables
 setwd("c:/git.creilly94010/EDACP1")
+library(data.table)
 importfilename <- "household_power_consumption.txt"
 Separator <- ";"
 natype <- "?"
+coltypes <- c("character", "character", "character", "character", 
+              "character", "character", "character", "character", "character")
+
+keysubset <- c("1/2/2007", "2/2/2007")
 
 
 ## Import data
-df  <-  read.table( file=importfilename,
-                header=TRUE, 
-                sep=Separator, 
-                na.strings=natype, 
-                colClasses=c("character", "character", "numeric", "numeric", 
-                        "numeric", "numeric", "numeric", "numeric", "numeric"))
-
+df <- fread(importfilename,sep=Separator, header=TRUE, na.strings=natype, 
+            colClasses=coltypes)
 ## subset to date
-df <- df[as.character(df$Date) %in% c("1/2/2007", "2/2/2007"),]
+setkey(df, Date)
+df <- df[keysubset]
 
 ## Convert the date column
 df$Date  <- as.Date(df$Date, "%d/%m/%Y")
 
 ## Create a DateTime Column and format
+df <- df[,DateTime:=as.POSIXct(strptime(paste(df$Date, df$Time),"%Y-%m-%d %H:%M:%S"))]
 
-df$DateTime <- strptime(paste(df$Date, df$Time), 
-                        format="%Y-%m-%d %H:%M:%S")
+## Convert Character fields to numerics
+library( taRifx )
+df <- japply( df, which(sapply(df, class)=="character"), as.numeric )
 
 ##plot data
 png(filename = "plot2.png", width = 480, height = 480, 
